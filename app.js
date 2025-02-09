@@ -22,7 +22,7 @@ async function startAR() {
 
             // Request AR session
             const session = await navigator.xr.requestSession('immersive-ar', {
-                requiredFeatures: ['local']
+                requiredFeatures: ['local', 'hit-test']
             });
 
             session.addEventListener('end', onARSessionEnd);
@@ -60,12 +60,43 @@ function setupARScene(session) {
     const mesh = new THREE.Mesh(geometry, material);
     scene.add(mesh);
 
-    // Set the camera position
-    camera.position.z = 5;
+    // Initial position of the product (start a bit off the center)
+    mesh.position.set(0, 0, -2); 
 
+    // Add hit-test listener
+    let hitTestSource = null;
+    let hitTestSourceRequested = false;
+
+    session.requestReferenceSpace('local').then((referenceSpace) => {
+        // Handle hit test
+        session.addEventListener('select', (event) => {
+            if (hitTestSource) {
+                // Update position of the product based on hit-test result
+                const hitMatrix = hitTestSource.getHitTestResults(event.inputSource);
+                if (hitMatrix) {
+                    mesh.position.set(hitMatrix[0].position.x, hitMatrix[0].position.y, hitMatrix[0].position.z);
+                }
+            }
+        });
+    });
+
+    // Function to handle animation and rendering
     function animate() {
-        requestAnimationFrame(animate);
         renderer.render(scene, camera);
+        requestAnimationFrame(animate);
     }
+
     animate();
+
+    // Handling hit-test in the AR world
+    session.requestHitTestSource({ source: session.inputSources[0] }).then((source) => {
+        hitTestSource = source;
+        hitTestSourceRequested = true;
+    });
+
+    // Handle the end of the session
+    session.addEventListener('end', () => {
+        // Optionally reset position or handle cleanup here
+        hitTestSource = null;
+    });
 }

@@ -10,14 +10,14 @@ document.getElementById('start-ar-btn').addEventListener('click', startAR);
 async function startAR() {
     if (navigator.xr) {
         try {
-            // Request AR session with camera and surface detection
+            // Start immersive AR session
             const session = await navigator.xr.requestSession('immersive-ar', {
                 requiredFeatures: ['local', 'hit-test']
             });
 
             session.addEventListener('end', onARSessionEnd);
 
-            // Set up the AR environment (camera feed + Three.js)
+            // Set up AR environment (camera feed + Three.js)
             setupARScene(session);
         } catch (e) {
             console.error('Error starting AR session: ', e);
@@ -30,40 +30,47 @@ async function startAR() {
 
 function onARSessionEnd() {
     alert('AR session ended.');
-    // Optionally, reset the view or display content again
-    document.getElementById('content').style.display = 'block';
+    document.getElementById("ar-content").style.display = 'none';
 }
 
-// Three.js setup for AR with camera feed
+// Three.js setup for AR camera feed and rendering
 function setupARScene(session) {
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer();
     renderer.setSize(window.innerWidth, window.innerHeight);
-    document.body.appendChild(renderer.domElement);
+    document.getElementById("ar-content").appendChild(renderer.domElement);
 
-    // Load product image as texture
+    // Load a product image as a texture (just an example)
     const texture = new THREE.TextureLoader().load('assets/jew.jpg');
     const material = new THREE.MeshBasicMaterial({ map: texture });
 
-    // Create plane geometry for the product
+    // Create a plane geometry for displaying the product
     const geometry = new THREE.PlaneGeometry(1, 1);
     const mesh = new THREE.Mesh(geometry, material);
     scene.add(mesh);
 
-    // Position the product in the AR space
-    mesh.position.set(0, 0, -2); // Initially place it 2 units away from the camera
+    // Position the camera to start with
+    camera.position.z = 5;
 
-    // Create a hit-test source (for detecting surfaces)
+    function animate() {
+        renderer.render(scene, camera);
+        requestAnimationFrame(animate);
+    }
+    animate();
+
+    // Add hit-test feature for surface detection
+    setupHitTest(session, mesh);
+}
+
+function setupHitTest(session, mesh) {
     let hitTestSource = null;
     let hitTestSourceRequested = false;
 
-    // Setup camera feed
     session.requestReferenceSpace('local').then((referenceSpace) => {
-        // Perform surface detection and place object on surfaces
+        // Setup hit-test source for surface detection
         session.addEventListener('select', (event) => {
             if (hitTestSource) {
-                // Update position of the product based on hit-test result
                 const hitResults = hitTestSource.getHitTestResults(event.inputSource);
                 if (hitResults.length > 0) {
                     const hitMatrix = hitResults[0];
@@ -73,18 +80,9 @@ function setupARScene(session) {
         });
     });
 
-    // Handle session start and animation
+    // Request hit-test source
     session.requestHitTestSource({ source: session.inputSources[0] }).then((source) => {
         hitTestSource = source;
         hitTestSourceRequested = true;
     });
-
-    // Handle rendering and animation of AR content
-    function animate() {
-        renderer.render(scene, camera);
-        requestAnimationFrame(animate);
-    }
-
-    animate();
 }
-

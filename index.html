@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>AR Product Viewer</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>Product Augmented Reality Viewer</h1>
+        <p>View our product in AR by clicking the button below!</p>
+        <button id="start-ar-btn">Start AR Experience</button>
+    </header>
+
+    <div id="content">
+        <h2>Your Product in AR</h2>
+        <p>Click the button below to place your product in the real world using AR.</p>
+    </div>
+
+    <!-- Script includes -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/webxr-polyfill@0.9.9/dist/webxr-polyfill.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

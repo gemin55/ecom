@@ -10,40 +10,31 @@ document.getElementById('start-ar-btn').addEventListener('click', startAR);
 async function startAR() {
     if (navigator.xr) {
         try {
-             // Hide content when AR session starts
-             document.getElementById('content').style.display = 'none';
-
-             // Check if immersive-ar session is supported
-             const supportedFeatures = await navigator.xr.isSessionSupported('immersive-ar');
-             if (!supportedFeatures) {
-                 alert('AR is not supported on your device.');
-                 return;
-             }
-
-            // Request AR session
+            // Request AR session with camera and surface detection
             const session = await navigator.xr.requestSession('immersive-ar', {
                 requiredFeatures: ['local', 'hit-test']
             });
 
             session.addEventListener('end', onARSessionEnd);
 
-            // Set up AR environment (Three.js)
+            // Set up the AR environment (camera feed + Three.js)
             setupARScene(session);
         } catch (e) {
             console.error('Error starting AR session: ', e);
             alert('Could not start AR session.');
         }
     } else {
-        alert('AR is not supported on your device/browser.');
+        alert('WebXR is not supported on this device/browser.');
     }
 }
 
 function onARSessionEnd() {
-    // Show content again when AR session ends
+    alert('AR session ended.');
+    // Optionally, reset the view or display content again
     document.getElementById('content').style.display = 'block';
 }
 
-// Three.js setup for AR
+// Three.js setup for AR with camera feed
 function setupARScene(session) {
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -51,52 +42,49 @@ function setupARScene(session) {
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
 
-    // Load your product image as a 3D texture or object
+    // Load product image as texture
     const texture = new THREE.TextureLoader().load('assets/jew.jpg');
     const material = new THREE.MeshBasicMaterial({ map: texture });
 
-    // Create a plane geometry to display the image in AR
+    // Create plane geometry for the product
     const geometry = new THREE.PlaneGeometry(1, 1);
     const mesh = new THREE.Mesh(geometry, material);
     scene.add(mesh);
 
-    // Initial position of the product (start a bit off the center)
-    mesh.position.set(0, 0, -2); 
+    // Position the product in the AR space
+    mesh.position.set(0, 0, -2); // Initially place it 2 units away from the camera
 
-    // Add hit-test listener
+    // Create a hit-test source (for detecting surfaces)
     let hitTestSource = null;
     let hitTestSourceRequested = false;
 
+    // Setup camera feed
     session.requestReferenceSpace('local').then((referenceSpace) => {
-        // Handle hit test
+        // Perform surface detection and place object on surfaces
         session.addEventListener('select', (event) => {
             if (hitTestSource) {
                 // Update position of the product based on hit-test result
-                const hitMatrix = hitTestSource.getHitTestResults(event.inputSource);
-                if (hitMatrix) {
-                    mesh.position.set(hitMatrix[0].position.x, hitMatrix[0].position.y, hitMatrix[0].position.z);
+                const hitResults = hitTestSource.getHitTestResults(event.inputSource);
+                if (hitResults.length > 0) {
+                    const hitMatrix = hitResults[0];
+                    mesh.position.set(hitMatrix.position.x, hitMatrix.position.y, hitMatrix.position.z);
                 }
             }
         });
     });
 
-    // Function to handle animation and rendering
+    // Handle session start and animation
+    session.requestHitTestSource({ source: session.inputSources[0] }).then((source) => {
+        hitTestSource = source;
+        hitTestSourceRequested = true;
+    });
+
+    // Handle rendering and animation of AR content
     function animate() {
         renderer.render(scene, camera);
         requestAnimationFrame(animate);
     }
 
     animate();
-
-    // Handling hit-test in the AR world
-    session.requestHitTestSource({ source: session.inputSources[0] }).then((source) => {
-        hitTestSource = source;
-        hitTestSourceRequested = true;
-    });
-
-    // Handle the end of the session
-    session.addEventListener('end', () => {
-        // Optionally reset position or handle cleanup here
-        hitTestSource = null;
-    });
 }
+

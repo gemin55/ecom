@@ -10,6 +10,9 @@ document.getElementById('start-ar-btn').addEventListener('click', startAR);
 async function startAR() {
     if (navigator.xr) {
         try {
+             // Hide content when AR session starts
+             document.getElementById('content').style.display = 'none';
+
              // Check if immersive-ar session is supported
              const supportedFeatures = await navigator.xr.isSessionSupported('immersive-ar');
              if (!supportedFeatures) {
@@ -36,7 +39,8 @@ async function startAR() {
 }
 
 function onARSessionEnd() {
-    alert('AR session ended.');
+    // Show content again when AR session ends
+    document.getElementById('content').style.display = 'block';
 }
 
 // Three.js setup for AR
